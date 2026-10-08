@@ -1,0 +1,15 @@
+.env
+data/
+backups/
+storage/
+node_modules/
+web/dist/
+__pycache__/
+*.pyc
+backend/staticfiles/
+.DS_Store
+.venv/
+venv/
+*.log
+.idea/
+.vscode/

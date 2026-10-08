@@ -1,0 +1,2 @@
+# Python-зависимости ОДО лежат в backend/requirements.txt
+-r backend/requirements.txt
