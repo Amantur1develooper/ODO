@@ -35,10 +35,15 @@ export function PdfView({ url }) {
     setPages([]);
     setError('');
     setCurrent(1);
+    // Если за 15 секунд не появилось ни одной страницы — предлагаем открыть файл в Safari.
+    const slow = setTimeout(() => {
+      if (!cancelled && !containerRef.current?.querySelector('canvas')) setError('Документ долго не открывается');
+    }, 15000);
 
     (async () => {
       const pdfjs = await loadPdfjs();
-      doc = await pdfjs.getDocument({ url, disableAutoFetch: true }).promise;
+      // ImageDecoder в Safari 26 ломает отрисовку сканов (JPEG внутри PDF) — декодируем силами PDF.js.
+      doc = await pdfjs.getDocument({ url, disableAutoFetch: true, isImageDecoderSupported: false }).promise;
       if (cancelled) return;
       const first = await doc.getPage(1);
       const base = first.getViewport({ scale: 1 });
@@ -67,7 +72,7 @@ export function PdfView({ url }) {
         observer = new IntersectionObserver((entries) => {
           for (const e of entries) {
             if (!e.isIntersecting) continue;
-            render(e.target).catch(() => {});
+            render(e.target).catch((err) => !cancelled && setError(err?.message || 'Ошибка отрисовки'));
           }
         }, { root: containerRef.current, rootMargin: '600px 0px' });
         containerRef.current.querySelectorAll('.pdf-page').forEach((el) => observer.observe(el));
@@ -76,6 +81,7 @@ export function PdfView({ url }) {
 
     return () => {
       cancelled = true;
+      clearTimeout(slow);
       observer?.disconnect();
       doc?.destroy();
     };
@@ -86,7 +92,7 @@ export function PdfView({ url }) {
       <div className="stage-message">
         <strong>Не удалось показать документ</strong>
         <span>{error}</span>
-        <a className="btn btn-primary" href={url} target="_blank" rel="noreferrer">Открыть отдельно</a>
+        <a className="btn btn-primary" href={url} target="_blank" rel="noreferrer">Открыть в браузере</a>
       </div>
     );
   }
